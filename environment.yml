@@ -1,0 +1,28 @@
+name: ta_scanner
+
+channels:
+    - default
+
+dependencies:
+    - python=3.7
+    - click
+    - sqlalchemy
+    - pandas >= 1.0.0
+    - psycopg2
+    - numpy
+    - requests
+    - pydantic
+    - pytz
+    - matplotlib
+    # test resources
+    - pytest
+    - pip
+    - pip:
+        # - twine
+        - ipdb
+        # - TA-Lib
+        - loguru
+        - ib_insync
+        - trading_calendars
+        # - "--editable ."
+        # testing resources

@@ -1,0 +1,16 @@
+version: '3.0'
+
+services:
+    pg:
+        image: postgres:12.2
+        restart: always
+        ports:
+          - 65432:5432
+        volumes:
+            - .:/db_data
+        environment:
+            - POSTGRES_USER=ibdatafetcher_user
+            - POSTGRES_PASSWORD=ibdatafetcher_password
+
+volumes:
+    db_data:
