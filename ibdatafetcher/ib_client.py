@@ -42,17 +42,18 @@ ib.connect(IB_CLIENT_HOST_IP, IB_CLIENT_PORT, IB_CLIENT_ID)
 ###################
 # in code lookup for LocalSymbol / ConId
 
-# key: conId
-# value: localSymbol
+# key[int]: conId
+# value[str]: localSymbol
 contract_reference = {}
 
 
 def set_contracts_reference(spread) -> None:
-    contract_reference[spread.m1.conId] = spread.m1.localSymbol
+    contract_reference[int(spread.m1.conId)] = spread.m1.localSymbol
+    contract_reference[int(spread.m2.conId)] = spread.m2.localSymbol
 
 
 def get_contract_reference(conId: int) -> str:
-    return contract_reference[spread.m1.conId]
+    return contract_reference[conId]
 
 
 ###################
@@ -72,15 +73,17 @@ def get_local_symbol(contract):
 
 
 def is_not_weekday(__date) -> bool:
-    result = __date.weekday() > 4 # 4 = Friday
+    result = __date.weekday() > 4  # 4 = Friday
     # skip thanksgiving
     if "2020-11-26" == __date.strftime("%Y-%m-%d"):
         return True
     # TODO(weston) ignore trading holidays with trading_calendars module
     return result
 
+
 def clean_query(query: str) -> str:
     return query.replace("\n", "").replace("\t", "")
+
 
 def data_already_fetched(engine, contract, value_type, __date) -> bool:
     date_str: str = __date.strftime("%Y-%m-%d")
@@ -109,15 +112,21 @@ def fetch_data(contract, value_type, last_x_days: int = 10):
 
         # Skip if Saturday and Sunday
         if is_not_weekday(ago):
-            logger.debug(f"{get_local_symbol(contract)} - {value_type} - {__date} => not a market day")    
+            logger.debug(
+                f"{get_local_symbol(contract)} - {value_type} - {__date} => not a market day"
+            )
             continue
 
         # Skip if we already have the data
         if data_already_fetched(engine, contract, value_type, ago):
-            logger.debug(f"{get_local_symbol(contract)} - {value_type} - {__date} => data already fetched")    
+            logger.debug(
+                f"{get_local_symbol(contract)} - {value_type} - {__date} => data already fetched"
+            )
             continue
-        
-        logger.debug(f"{get_local_symbol(contract)} - {value_type} - {__date} -> fetching")
+
+        logger.debug(
+            f"{get_local_symbol(contract)} - {value_type} - {__date} -> fetching"
+        )
 
         # extract / fetch data from IB
         bars = ib.reqHistoricalData(
