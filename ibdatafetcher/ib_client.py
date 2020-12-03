@@ -24,9 +24,9 @@ from models import (
 
 # because we're limited to 60 requests every 10 minutes
 # See https://interactivebrokers.github.io/tws-api/historical_limitations.html
-SLEEP_TIME = 5.0
+SLEEP_TIME = 2.0
 
-FETCH_LAST_X_DAYS = 20
+FETCH_LAST_X_DAYS = 50
 INDIVIDUAL_CONTRACT_DATA_POINTS = ["TRADES", "ASK", "BID"]
 SPREAD_CONTRACT_DATA_POINTS = ["BID_ASK"]
 IB_CLIENT_HOST_IP = "127.0.0.1"
