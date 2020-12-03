@@ -24,9 +24,7 @@ NUMERIC_OPTIONS = dict(precision=8, scale=2, decimal_return_scale=None, asdecima
 
 
 def gen_engine():
-    connection_string: str = (
-        "postgresql://localhost:5432/ibdatafetcher"
-    )
+    connection_string: str = "postgresql://localhost:5432/ibdatafetcher"
     engine = create_engine(connection_string, convert_unicode=True)
     return engine
 
@@ -52,7 +50,15 @@ class Quote(Base):
     rth = Column(Boolean)
     value_type = Column(String(20))
 
-    __table_args__ = (Index("ix_quote_local_symbol_ts_value_type", local_symbol, ts, value_type, unique=True),)
+    __table_args__ = (
+        Index(
+            "ix_quote_local_symbol_ts_value_type",
+            local_symbol,
+            ts,
+            value_type,
+            unique=True,
+        ),
+    )
 
 
 def db_insert_df_conflict_on_do_nothing(
@@ -65,8 +71,8 @@ def db_insert_df_conflict_on_do_nothing(
 
     query = sql.SQL(query_template).format(
         table_name=sql.Identifier(table_name),
-        cols=sql.SQL(', ').join(map(sql.Identifier, cols)),
-        values=sql.SQL(', ').join(sql.Placeholder() * len(cols)),
+        cols=sql.SQL(", ").join(map(sql.Identifier, cols)),
+        values=sql.SQL(", ").join(sql.Placeholder() * len(cols)),
     )
 
     with engine.connect() as con:
