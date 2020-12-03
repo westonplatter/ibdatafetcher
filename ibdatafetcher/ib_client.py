@@ -1,7 +1,10 @@
+import time
 import pandas as pd
 from loguru import logger
+import calendar
+from dateutil.relativedelta import relativedelta
 
-import datetime
+from datetime import datetime, date, timedelta
 from trading_calendars import get_calendar, TradingCalendar
 from typing import Optional, Dict, Any, List, Tuple, Optional
 
@@ -16,35 +19,45 @@ init_db(engine)
 ib = IB()
 ib.connect("127.0.0.1", 4001, 1)
 
-mes_spread = FutureCalendarSpread(
-    underlying_symbol=UnderlyingSymbol.MES.value,
-    action=ActionType.BUY
-)
-mes_spread.init_contracts(ib)
 
-value_types = ["TRADES", "BID", "ASK"]
+def get_symbol(contract):
+    return contract.symbol
 
-contracts = [mes_spread.m1, mes_spread.m2]
+def get_local_symbol(contract):
+    return contract.localSymbol
 
-for contract in contracts:
-    for value_type in value_types:
-        logger.debug(f"{contract.localSymbol} - {value_type}")
+def is_not_weekday(__date) -> bool:
+    return __date.weekday() < 5
+
+
+def fetch_data(contract, value_type):
+    for i in range(1, 90):
+        ago = date.today() - relativedelta(days=i)
+
+        if is_not_weekday(ago):
+            pass
+
+        __date = ago.strftime("%Y%m%d")
+        end_date_time = f"{__date} 23:59:59"
+        
+        logger.debug(f"{contract.localSymbol} - {value_type} - {__date}")
 
         # extract / fetch data from IB
         bars = ib.reqHistoricalData(
             contract,
-            endDateTime="20201201 00:00:00",
-            durationStr="2 D",
+            endDateTime=end_date_time,
+            durationStr="1 D",
             barSizeSetting="1 min",
             whatToShow=value_type,
             useRTH=True,
-            formatDate=2,  # return as UTC time
+            # formatDate=2,  # return as UTC time
         )
         df = ib_insync_util.df(bars)
         
         # manually fill in data
-        df["symbol"] = contract.symbol
-        df["local_symbol"] = contract.localSymbol
+        # TODO(weston) handle contracts and spreads here
+        df["symbol"] = "MES" # get_symbol(contract)
+        df["local_symbol"] = "MES1-2" # get_local_symbol(contract)
         df['value_type'] = value_type
         df['rth'] = True
 
@@ -54,116 +67,35 @@ for contract in contracts:
         # load
         db_insert_df_conflict_on_do_nothing(engine, df, Quote.__tablename__)
 
+mes_spread = FutureCalendarSpread(
+    underlying_symbol=UnderlyingSymbol.MES.value,
+    action=ActionType.BUY
+)
+mes_spread.init_contracts(ib)
+
+cs = [mes_spread.m1, mes_spread.m2]
+value_types = ["TRADES", "ASK", "BID"]
+
+for contract in cs:
+    for value_type in value_types:
+        fetch_data(contract, value_type)
+        ib.sleep(2.0)
+
+# for contract in [mes_spread.contract]:
+#     for value_type in ["BID_ASK", "TRADES"]:
+#         fetch_data(contract, value_type)
+#         ib.sleep(2.0)
 
 
-# class IbDataFetcher(DataFetcherBase):
-#     def __init__(self, client_id: int = 0):
-#         self.ib = None
-#         self.client_id = client_id
-#
-#     def _init_client(self, host: str = "127.0.0.1", port: int = 4001) -> None:
-#         ib = IB()
-#         ib.connect(host, port, clientId=self.client_id)
-#         self.ib = ib
-#
-#     def _execute_req_historical(
-#         self, contract, dt, duration, bar_size_setting, what_to_show, use_rth
-#     ) -> pd.DataFrame:
-#         if self.ib is None or not self.ib.isConnected():
-#             self._init_client()
-#
-#         dfs = []
-#         for rth in [True, False]:
-#             bars = self.ib.reqHistoricalData(
-#                 contract,
-#                 endDateTime=dt,
-#                 durationStr=duration,
-#                 barSizeSetting=bar_size_setting,
-#                 whatToShow=what_to_show,
-#                 useRTH=rth,  # use_rth,
-#                 formatDate=2,  # return as UTC time
-#             )
-#             x = ib_insync_util.df(bars)
-#             if x is None:
-#                 continue
-#             x["rth"] = rth
-#             dfs.append(x)
-#
-#         if dfs == []:
-#             return None
-#         df = pd.concat(dfs).drop_duplicates().reset_index(drop=True)
-#         return df
-#
-#     def request_stock_instrument(
-#         self, instrument_symbol: str, dt: datetime.datetime, what_to_show: str
-#     ) -> pd.DataFrame:
-#         exchange = Exchange.SMART.value
-#         contract = Stock(instrument_symbol, exchange, Currency.USD.value)
-#         duration = "2 D"
-#         bar_size_setting = "1 min"
-#         use_rth = False
-#         return self._execute_req_historical(
-#             contract, dt, duration, bar_size_setting, what_to_show, use_rth
-#         )
-#
-#     def select_exchange_by_symbol(self, symbol):
-#         kvs = {
-#             Exchange.GLOBEX: [
-#                 # fmt: off
-#                 # equities
-#                 "/ES", "/MES",
-#                 "/NQ", "/MNQ",
-#                 # currencies
-#                 "/M6A", "/M6B", "/M6E",
-#                 # interest rates
-#                 # '/GE', '/ZN', '/ZN', '/ZT',
-#                 # fmt: on
-#             ],
-#             Exchange.ECBOT: ["/ZC", "/YC", "/ZS", "/YK", "/ZW", "/YW"],
-#             Exchange.NYMEX: [
-#                 "/GC",
-#                 "/MGC",
-#                 "/CL",
-#                 "/QM",
-#             ],
-#         }
-#
-#         for k, v in kvs.items():
-#             if symbol in v:
-#                 return k
-#         raise NotImplementedError
-#
-#     def request_future_instrument(
-#         self,
-#         symbol: str,
-#         dt: datetime.datetime,
-#         what_to_show: str,
-#         contract_date: Optional[str] = None,
-#     ) -> pd.DataFrame:
-#         exchange_name = self.select_exchange_by_symbol(symbol).value
-#
-#         if contract_date:
-#             raise NotImplementedError
-#         else:
-#             contract = ContFuture(symbol, exchange_name, currency=Currency.USD.value)
-#
-#         duration = "1 D"
-#         bar_size_setting = "1 min"
-#         use_rth = False
-#         return self._execute_req_historical(
-#             contract, dt, duration, bar_size_setting, what_to_show, use_rth
-#         )
-#
-#     def request_instrument(
-#         self,
-#         symbol: str,
-#         dt,
-#         what_to_show,
-#         contract_date: Optional[str] = None,
-#     ):
-#         if "/" in symbol:
-#             return self.request_future_instrument(
-#                 symbol, dt, what_to_show, contract_date
-#             )
-#         else:
-#             return self.request_stock_instrument(symbol, dt, what_to_show)
+# value_types = ["TRADES", "ASK"]
+
+# contracts = [mes_spread.m1, mes_spread.m2]
+
+# contracts = [mes_spread]
+
+# value_types = ["TRADES", "BID"]
+# value_types = ["BID_ASK"]
+# value_types = ["TRADES", "ASK"]
+
+# contracts = [mes_spread2.contract]
+# value_types = ["TRADES", "ASK"]
