@@ -29,6 +29,7 @@ class SecType(Enum):
 
 class Exchange(Enum):
     GLOBEX = "GLOBEX"
+    NYMEX = "NYMEX"
 
 
 class FutureExpirationDate(Enum):
