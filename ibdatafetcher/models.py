@@ -67,6 +67,7 @@ def db_insert_df_conflict_on_do_nothing(
     cols = __gen_cols(df)
     values = __gen_values(df)
 
+    # TODO(weston) make it work like, https://stackoverflow.com/questions/4038616/get-count-of-records-affected-by-insert-or-update-in-postgresql
     query_template = "INSERT INTO {table_name} ({cols}) VALUES ({values});"
 
     query = sql.SQL(query_template).format(
