@@ -1,6 +1,6 @@
-# 
+#
 # goal - init and download the /CL curve
-# 
+#
 
 # external deps
 from enum import Enum
@@ -37,6 +37,7 @@ engine = gen_engine()
 init_db(engine)
 
 ###################
+# this is a hacky version of of a securities master
 # in code lookup for LocalSymbol / ConId
 
 # key[int]: conId
@@ -52,6 +53,7 @@ def set_contracts_reference(spread) -> None:
 def get_contract_reference(conId: int) -> str:
     return contract_reference[conId]
 
+
 def get_local_symbol(contract):
     if contract.secType == SecType.BAG.value:
         front = get_contract_reference(contract.comboLegs[0].conId)
@@ -59,6 +61,7 @@ def get_local_symbol(contract):
         return f"{front}/{back}"
     else:
         return contract.localSymbol
+
 
 ###################
 
@@ -76,13 +79,14 @@ def gen_fm_bm_pairings(spread: int) -> List[str]:
                 continue
             exdates.append(f"{y}{m}")
     result = []
-    imax = len(exdates)-1
+    imax = len(exdates) - 1
     for i, ed in enumerate(exdates):
-        if i+spread > imax:
+        if i + spread > imax:
             continue
-        fm, bm = exdates[i], exdates[i+spread]
+        fm, bm = exdates[i], exdates[i + spread]
         result.append([fm, bm])
     return result
+
 
 def gen_spread_on_nymex(symbol: str, m1: str, m2: str) -> FutureCalendarSpread:
     return FutureCalendarSpread(
@@ -92,6 +96,7 @@ def gen_spread_on_nymex(symbol: str, m1: str, m2: str) -> FutureCalendarSpread:
         m1_expiry=m1,
         m2_expiry=m2,
     )
+
 
 qm_curve = []
 
@@ -103,11 +108,11 @@ for m1, m2 in spread_dates:
     set_contracts_reference(spread)
     qm_curve.append(spread)
 
-def fetch_data(contract, value_type):
-    logger.debug(f"fetching /QM 20201216 for {get_local_symbol(contract)}")
+
+def fetch_data(contract, yyyymmdd: str, value_type: str):
     bars = ib.reqHistoricalData(
         contract,
-        endDateTime="20201216 23:59:59",
+        endDateTime=f"{yyyymmdd} 23:59:59",
         durationStr="1 D",
         barSizeSetting="1 min",
         whatToShow=value_type,
@@ -117,7 +122,11 @@ def fetch_data(contract, value_type):
     df = ib_insync_util.df(bars)
     return df
 
+
 def save_df(contract, value_type, df):
+    if df is None:
+        return
+
     # transform
     transform_rename_df_columns(df)
 
@@ -133,18 +142,22 @@ def save_df(contract, value_type, df):
     # sleep so we don't overload IB and get throttled
     ib.sleep(2.02)
 
-def execute_fetch(contracts, value_types):
+
+def execute_fetch(contracts, yyyymmdd, value_types):
     for contract in contracts:
         for value_type in value_types:
-            df = fetch_data(contract, value_type)
+            logger.debug(f"Fetching {get_local_symbol(contract)} - {value_type} on {yyyymmdd}")
+            df = fetch_data(contract, yyyymmdd, value_type)
             save_df(contract, value_type, df)
 
+
 for spread in qm_curve:
+    yyyymmdd = "20201220" # this is a hack
     # front and back contracts
     contracts = spread.m1, spread.m2
     value_types = INDIVIDUAL_CONTRACT_DATA_POINTS
-    execute_fetch(contracts, value_types)
+    execute_fetch(contracts, yyyymmdd, value_types)
     # spread contract
     contracts = [spread.contract]
     value_types = SPREAD_CONTRACT_DATA_POINTS
-    execute_fetch(contracts, value_types)
+    execute_fetch(contracts, yyyymmdd, value_types)
