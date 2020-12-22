@@ -29,6 +29,7 @@ class SecType(Enum):
 
 class Exchange(Enum):
     GLOBEX = "GLOBEX"
+    NYMEX = "NYMEX"
 
 
 class FutureExpirationDate(Enum):
@@ -90,7 +91,13 @@ class FutureCalendarSpread(BaseModel):
         contract.comboLegs.append(leg2)
         self.contract = contract
 
-    def description(self) -> str:
+    def description(self, short=True) -> str:
         m1ex = self.m1.lastTradeDateOrContractMonth
         m2ex = self.m2.lastTradeDateOrContractMonth
+
+        def shorten(ex):
+            return ex[0:6]
+
+        if short:
+            m1ex, m2ex = shorten(m1ex), shorten(m2ex)
         return f"{self.underlying_symbol} {m1ex}/{m2ex}"
