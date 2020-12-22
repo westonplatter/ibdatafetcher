@@ -10,8 +10,8 @@ from ib_insync import IB, Future, ContFuture, Stock, Contract
 from ib_insync import util as ib_insync_util
 
 # internal code/modules
-from spreads import FutureCalendarSpread, ActionType, UnderlyingSymbol, SecType
-from models import (
+from ibdatafetcher.spreads import FutureCalendarSpread, ActionType, UnderlyingSymbol, SecType
+from ibdatafetcher.models import (
     Quote,
     gen_engine,
     init_db,
@@ -46,11 +46,12 @@ ib.connect(IB_CLIENT_HOST_IP, IB_CLIENT_PORT, IB_CLIENT_ID)
 # value[str]: localSymbol
 contract_reference = {}
 
+def set_contract_reference(contract) -> None:
+    contract_reference[int(contract.conId)] = contract.localSymbol
 
-def set_contracts_reference(spread) -> None:
-    contract_reference[int(spread.m1.conId)] = spread.m1.localSymbol
-    contract_reference[int(spread.m2.conId)] = spread.m2.localSymbol
-
+def set_spread_contracts_reference(spread) -> None:
+    set_contract_reference(spread.m1)
+    set_contract_reference(spread.m2)
 
 def get_contract_reference(conId: int) -> str:
     return contract_reference[conId]
@@ -59,17 +60,19 @@ def get_contract_reference(conId: int) -> str:
 ###################
 
 
-# def get_symbol(contract):
-#     return contract.symbol
+def get_symbol(contract):
+    return contract.symbol
 
 
-# def get_local_symbol(contract):
-#     if contract.secType == SecType.BAG.value:
-#         front = get_contract_reference(contract.comboLegs[0].conId)
-#         back = get_contract_reference(contract.comboLegs[1].conId)
-#         return f"{front}/{back}"
-#     else:
-#         return contract.localSymbol
+def get_local_symbol(contract):
+    if contract.secType == SecType.BAG.value:
+        front = get_contract_reference(contract.comboLegs[0].conId)
+        back = get_contract_reference(contract.comboLegs[1].conId)
+        return f"{front}/{back}"
+    elif hasattr(contract, 'localSymbol'):
+        return contract.localSymbol
+    else:
+        contract.symbol
 
 
 def is_not_weekday(__date) -> bool:
@@ -156,38 +159,44 @@ def fetch_data(contract, value_type, last_x_days: int = 10):
         ib.sleep(SLEEP_TIME)
 
 
-future_spread_symbols = [
-    UnderlyingSymbol.MES,
-    UnderlyingSymbol.ES,
-    UnderlyingSymbol.MNQ,
-    UnderlyingSymbol.NQ,
-    UnderlyingSymbol.RTY,
-    UnderlyingSymbol.M2K,
-]
+# future_spread_symbols = [
+#     UnderlyingSymbol.MES,
+#     UnderlyingSymbol.ES,
+#     UnderlyingSymbol.MNQ,
+#     UnderlyingSymbol.NQ,
+#     UnderlyingSymbol.RTY,
+#     UnderlyingSymbol.M2K,
+# ]
 
-spreads = []
+# spreads = []
 
-for future_spread_symbol in future_spread_symbols:
-    spread = FutureCalendarSpread(
-        underlying_symbol=future_spread_symbol.value, action=ActionType.BUY
-    )
-    spread.init_contracts(ib)
-    set_contracts_reference(spread)
-    spreads.append(spread)
+# for future_spread_symbol in future_spread_symbols:
+#     spread = FutureCalendarSpread(
+#         underlying_symbol=future_spread_symbol.value, action=ActionType.BUY
+#     )
+#     spread.init_contracts(ib)
+#     set_spread_contracts_reference(spread)
+#     spreads.append(spread)
 
 
 def execute_fetch(contracts, value_types, last_x_days):
     for contract in contracts:
+        # if we qualify a ContFuture contract, we lock 
+        # in the expiration date and it becomes a Future
+        # we don't want this
+        if isinstance(contract, (Stock, ContFuture, Future)):
+            [contract] = ib.qualifyContracts(*[contract])
+            set_contract_reference(contract)
         for value_type in value_types:
             fetch_data(contract, value_type, last_x_days)
 
 
-for spread in spreads:
-    # front and back contracts
-    contracts = spread.m1, spread.m2
-    value_types = INDIVIDUAL_CONTRACT_DATA_POINTS
-    execute_fetch(contracts, value_types, FETCH_LAST_X_DAYS)
-    # spread contract
-    contracts = [spread.contract]
-    value_types = SPREAD_CONTRACT_DATA_POINTS
-    execute_fetch(contracts, value_types, FETCH_LAST_X_DAYS)
+# for spread in spreads:
+#     # front and back contracts
+#     contracts = spread.m1, spread.m2
+#     value_types = INDIVIDUAL_CONTRACT_DATA_POINTS
+#     execute_fetch(contracts, value_types, FETCH_LAST_X_DAYS)
+#     # spread contract
+#     contracts = [spread.contract]
+#     value_types = SPREAD_CONTRACT_DATA_POINTS
+#     execute_fetch(contracts, value_types, FETCH_LAST_X_DAYS)

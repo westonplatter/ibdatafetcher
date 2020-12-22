@@ -18,11 +18,9 @@ dependencies:
     - pytest
     - pip
     - pip:
-        # - twine
         - ipdb
-        # - TA-Lib
         - loguru
         - ib_insync
         - trading_calendars
-        # - "--editable ."
+        - "--editable ."
         # testing resources
