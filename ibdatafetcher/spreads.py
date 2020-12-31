@@ -40,6 +40,7 @@ class FutureExpirationDate(Enum):
     M1 = "20201218"
     M2 = "20210319"
 
+
 class FutureCalendarSpread(BaseModel):
     underlying_symbol: str
     exchange: Exchange = Exchange.GLOBEX
