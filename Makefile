@@ -15,3 +15,10 @@ env.create:
 
 env.update:
 	@conda env update -n ${CONDA_ENV} -f environment.yml
+
+
+##### downloads
+
+download_futures_equities:
+	@python download_futures_equities.py
+

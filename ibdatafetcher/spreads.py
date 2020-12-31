@@ -4,6 +4,10 @@ from typing import Any
 from pydantic import BaseModel
 
 
+INDIVIDUAL_CONTRACT_DATA_POINTS = ["TRADES", "ASK", "BID"]
+SPREAD_CONTRACT_DATA_POINTS = ["BID_ASK"]
+
+
 class UnderlyingSymbol(Enum):
     ES = "ES"
     MES = "MES"

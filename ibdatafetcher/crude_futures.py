@@ -146,13 +146,15 @@ def save_df(contract, value_type, df):
 def execute_fetch(contracts, yyyymmdd, value_types):
     for contract in contracts:
         for value_type in value_types:
-            logger.debug(f"Fetching {get_local_symbol(contract)} - {value_type} on {yyyymmdd}")
+            logger.debug(
+                f"Fetching {get_local_symbol(contract)} - {value_type} on {yyyymmdd}"
+            )
             df = fetch_data(contract, yyyymmdd, value_type)
             save_df(contract, value_type, df)
 
 
 for spread in qm_curve:
-    yyyymmdd = "20201220" # this is a hack
+    yyyymmdd = "20201220"  # this is a hack
     # front and back contracts
     contracts = spread.m1, spread.m2
     value_types = INDIVIDUAL_CONTRACT_DATA_POINTS
