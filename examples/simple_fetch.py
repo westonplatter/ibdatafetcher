@@ -3,7 +3,12 @@ from ib_insync import ContFuture, Stock, Contract
 
 # internal code/modules
 from ibdatafetcher.ib_client import execute_fetch
-from ibdatafetcher.spreads import FutureCalendarSpread, ActionType, UnderlyingSymbol, SecType
+from ibdatafetcher.spreads import (
+    FutureCalendarSpread,
+    ActionType,
+    UnderlyingSymbol,
+    SecType,
+)
 
 
 # equity_futures = ["/ES", "/NQ", "/RTY"]

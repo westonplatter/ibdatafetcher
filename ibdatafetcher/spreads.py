@@ -4,6 +4,10 @@ from typing import Any
 from pydantic import BaseModel
 
 
+INDIVIDUAL_CONTRACT_DATA_POINTS = ["TRADES", "ASK", "BID"]
+SPREAD_CONTRACT_DATA_POINTS = ["BID_ASK"]
+
+
 class UnderlyingSymbol(Enum):
     ES = "ES"
     MES = "MES"
@@ -35,6 +39,7 @@ class Exchange(Enum):
 class FutureExpirationDate(Enum):
     M1 = "20201218"
     M2 = "20210319"
+
 
 class FutureCalendarSpread(BaseModel):
     underlying_symbol: str

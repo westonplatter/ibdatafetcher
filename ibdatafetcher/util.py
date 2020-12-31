@@ -1,14 +1,14 @@
-from spreads import SecType
+from ib_insync import Contract
+from datetime import date
 
 
-def get_symbol(contract):
-    return contract.symbol
-
-
-def get_local_symbol(contract):
-    if contract.secType == SecType.BAG.value:
-        front = get_contract_reference(contract.comboLegs[0].conId)
-        back = get_contract_reference(contract.comboLegs[1].conId)
-        return f"{front}/{back}"
-    else:
-        return contract.localSymbol
+def is_trading_day(contract: Contract, __date: date) -> bool:
+    """
+    This only determines if market is open during RTH
+    TODO(weston) ignore trading holidays with trading_calendars module
+    """
+    result = __date.weekday() < 5  # 4 = Friday
+    # hack, skip thanksgiving
+    if __date.strftime("%Y-%m-%d") in ["2020-11-26", "2020-12-25"]:
+        return False
+    return result

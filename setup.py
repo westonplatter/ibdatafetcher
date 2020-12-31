@@ -22,4 +22,3 @@ setup(
         "Source Code": "https://github.com/westonplatter/ibdatafetcher",
     },
 )
-
