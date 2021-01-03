@@ -6,7 +6,6 @@ from ibdatafetcher.ib_client import execute_fetch
 from ibdatafetcher.spreads import (
     FutureCalendarSpread,
     ActionType,
-    UnderlyingSymbol,
     SecType,
 )
 

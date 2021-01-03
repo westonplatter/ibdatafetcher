@@ -9,6 +9,6 @@ def is_trading_day(contract: Contract, __date: date) -> bool:
     """
     result = __date.weekday() < 5  # 4 = Friday
     # hack, skip thanksgiving
-    if __date.strftime("%Y-%m-%d") in ["2020-11-26", "2020-12-25"]:
+    if __date.strftime("%Y-%m-%d") in ["2020-11-26", "2020-12-25", "2021-01-01"]:
         return False
     return result

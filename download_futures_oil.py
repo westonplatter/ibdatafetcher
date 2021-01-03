@@ -34,7 +34,8 @@ def save_df(contract, value_type, df):
     # manually fill in data
     df["symbol"] = sec_master.get_symbol(contract)
     df["local_symbol"] = sec_master.get_local_symbol(contract)
-    # df["con_id"] = get_cond_id(conttract) # TODO(weston) when we setup the securities master
+    # df["con_id"] = get_cond_id(conttract)
+    # TODO(weston) when we setup the securities master
     df["value_type"] = value_type
     df["rth"] = True
 
@@ -57,11 +58,33 @@ def execute_fetch(contracts, yyyymmdd, value_types):
 def gen_spread(symbol: str, front_exp: str, back_exp: str) -> FutureCalendarSpread:
     return FutureCalendarSpread(
         underlying_symbol=symbol,
-        exchange=Exchange.GLOBEX,
+        exchange=Exchange.NYMEX,
         action=ActionType.BUY,
         m1_expiry=front_exp,
         m2_expiry=back_exp,
     )
+
+
+def gen_fm_bm_pairings(spread: int) -> List[str]:
+    """
+    spread in months. 1 -> 1 month spread
+    """
+    ys = ["2021"]
+    ms = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+    exdates = []
+    for y in ys:
+        for m in ms:
+            if y == "2021" and m == "01":
+                continue
+            exdates.append(f"{y}{m}")
+    result = []
+    imax = len(exdates) - 1
+    for i, ed in enumerate(exdates):
+        if i + spread > imax:
+            continue
+        fm, bm = exdates[i], exdates[i + spread]
+        result.append([fm, bm])
+    return result
 
 
 ib = gen_ib_client()
@@ -69,11 +92,11 @@ engine = gen_engine()
 init_db(engine)
 sec_master = InMemSecuritiesMaster()
 
+
 if __name__ == "__main__":
     last_x_days = 20
-    symbols = ["/ES", "/MES", "/RTY", "/M2K"]
-    front_back_expirations = [("202103", "202106")]
-
+    symbols = ["/CL", "/QM"]
+    front_back_expirations = gen_fm_bm_pairings(1)
     calendar_spreads = []
 
     for symbol in symbols:
