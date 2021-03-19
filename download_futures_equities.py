@@ -81,7 +81,7 @@ if __name__ == "__main__":
     expirations = ["202106", "202103"]
 
     contracts = init_contracts(symbols, expirations)
-    contracts = ib.qualifyContracts(contracts)
+    contracts = ib.qualifyContracts(*contracts)
     register_contracts_with_sec_master(sec_master, contracts)
 
     for i in range(1, last_x_days):

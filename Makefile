@@ -19,6 +19,8 @@ env.update:
 
 ##### downloads
 
-download_futures_equities:
+download.futures_equities:
 	@python download_futures_equities.py
 
+download.stocks:
+	@python download_stocks.py

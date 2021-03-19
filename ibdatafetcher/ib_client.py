@@ -40,7 +40,7 @@ def fetch_data(ib, sm, engine, contract, yyyymmdd: str, value_type: str, rth: bo
         msg = f"{yyyymmdd} -- {local_symbol} -- {value_type} -- not during rth"
         logger.debug(msg)
         return
-s
+
     bars = ib.reqHistoricalData(
         contract,
         endDateTime=f"{yyyymmdd} 23:59:59",
