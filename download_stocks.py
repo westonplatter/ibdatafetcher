@@ -1,6 +1,6 @@
 from datetime import date
 from dateutil.relativedelta import relativedelta
-from ib_insync import Future
+from ib_insync import Stock
 from loguru import logger
 
 from ibdatafetcher.security_master import InMemSecuritiesMaster
@@ -48,14 +48,6 @@ def execute_fetch(sm, contracts, yyyymmdd, value_types):
             save_df(sm, contract, value_type, df)
 
 
-def gen_contract(symbol, exp) -> Future:
-    return Future(
-        symbol=symbol,
-        lastTradeDateOrContractMonth=exp,
-        exchange=Exchange.GLOBEX.value,
-    )
-
-
 def init_contracts(symbols, exps):
     contracts = []
     for symbol in symbols:
@@ -77,10 +69,9 @@ sec_master = InMemSecuritiesMaster()
 
 if __name__ == "__main__":
     last_x_days = 20
-    symbols = ["/MES", "/M2K", "/MNQ"]
-    expirations = ["202106", "202103"]
-
-    contracts = init_contracts(symbols, expirations)
+    symbols = ["TLT", "SQ"]
+    
+    contracts = [Stock(x, 'SMART', 'USD') for x in symbols]
     contracts = ib.qualifyContracts(*contracts)
     register_contracts_with_sec_master(sec_master, contracts)
 

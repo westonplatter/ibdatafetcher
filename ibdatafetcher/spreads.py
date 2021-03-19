@@ -8,15 +8,6 @@ INDIVIDUAL_CONTRACT_DATA_POINTS = ["TRADES", "ASK", "BID"]
 SPREAD_CONTRACT_DATA_POINTS = ["BID_ASK"]
 
 
-class UnderlyingSymbol(Enum):
-    ES = "ES"
-    MES = "MES"
-    NQ = "NQ"
-    MNQ = "MNQ"
-    RTY = "RTY"
-    M2K = "M2K"
-
-
 class Currency(Enum):
     USD = "USD"
 
@@ -36,17 +27,12 @@ class Exchange(Enum):
     NYMEX = "NYMEX"
 
 
-class FutureExpirationDate(Enum):
-    M1 = "20201218"
-    M2 = "20210319"
-
-
 class FutureCalendarSpread(BaseModel):
     underlying_symbol: str
-    exchange: Exchange = Exchange.GLOBEX
+    exchange: Exchange = None
     action: ActionType = None
-    m1_expiry: str = "20201218"
-    m2_expiry: str = "20210319"
+    m1_expiry: str = None
+    m2_expiry: str = None
     m1: Any = None
     m2: Any = None
     contract: Any = None

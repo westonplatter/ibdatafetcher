@@ -21,7 +21,8 @@ class InMemSecuritiesMaster:
         return contract.symbol
 
     def get_local_symbol(self, contract: Contract):
-        # ONLY handles futures calendar spread at this time @TODO(weston) expand functionality
+        # ONLY handles futures calendar spread at this time
+        # @TODO(weston) expand functionality
         if contract.secType == SecType.BAG.value:
             front = self.get_ref(contract.comboLegs[0].conId)
             back = self.get_ref(contract.comboLegs[1].conId)

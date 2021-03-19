@@ -41,6 +41,7 @@ class Quote(Base):
     ts = Column(DateTime(timezone=True), index=True)
     symbol = Column(String(10))
     local_symbol = Column(String(20))
+    con_id = Column(Integer)
     open = Column(Numeric(**NUMERIC_OPTIONS))
     close = Column(Numeric(**NUMERIC_OPTIONS))
     high = Column(Numeric(**NUMERIC_OPTIONS))
@@ -83,10 +84,10 @@ def db_insert_df_conflict_on_do_nothing(
                 try:
                     cur.execute(query, v)
                     con.connection.commit()
-                except UniqueViolation as e:
+                except UniqueViolation:
                     cur.execute("rollback")
                     con.connection.commit()
-                except Exception as e:
+                except Exception:
                     cur.execute("rollback")
                     con.connection.commit()
 
