@@ -1,13 +1,10 @@
-from datetime import datetime, date, timedelta
+from datetime import date
 from dateutil.relativedelta import relativedelta
-from ib_insync import util as ib_insync_util
-from ib_insync import Contract
+from ib_insync import Future
 from loguru import logger
-from typing import List
 
-from ibdatafetcher.util import is_trading_day
 from ibdatafetcher.security_master import InMemSecuritiesMaster
-from ibdatafetcher.spreads import ActionType, FutureCalendarSpread, Exchange
+from ibdatafetcher.spreads import Exchange
 from ibdatafetcher.ib_client import gen_ib_client, fetch_data
 from ibdatafetcher.models import (
     Quote,
@@ -15,16 +12,11 @@ from ibdatafetcher.models import (
     init_db,
     db_insert_df_conflict_on_do_nothing,
     transform_rename_df_columns,
-    clean_query,
-    data_already_fetched,
 )
-from ibdatafetcher.spreads import (
-    INDIVIDUAL_CONTRACT_DATA_POINTS,
-    SPREAD_CONTRACT_DATA_POINTS,
-)
+from ibdatafetcher.spreads import INDIVIDUAL_CONTRACT_DATA_POINTS
 
 
-def save_df(contract, value_type, df):
+def save_df(sm, contract, value_type, df):
     if df is None:
         return
 
@@ -32,9 +24,9 @@ def save_df(contract, value_type, df):
     transform_rename_df_columns(df)
 
     # manually fill in data
-    df["symbol"] = sec_master.get_symbol(contract)
-    df["local_symbol"] = sec_master.get_local_symbol(contract)
-    # df["con_id"] = get_cond_id(conttract) # TODO(weston) when we setup the securities master
+    df["symbol"] = sm.get_symbol(contract)
+    df["local_symbol"] = sm.get_local_symbol(contract)
+    df["con_id"] = contract.conId
     df["value_type"] = value_type
     df["rth"] = True
 
@@ -45,23 +37,37 @@ def save_df(contract, value_type, df):
     ib.sleep(2.02)
 
 
-def execute_fetch(contracts, yyyymmdd, value_types):
+def execute_fetch(sm, contracts, yyyymmdd, value_types):
     for contract in contracts:
         for value_type in value_types:
             local_symbol = sec_master.get_local_symbol(contract)
-            logger.debug(f"{yyyymmdd} -- {local_symbol} -- {value_type} -- fetching")
-            df = fetch_data(ib, sec_master, engine, contract, yyyymmdd, value_type, rth=True)
-            save_df(contract, value_type, df)
+            logger.debug(f"{yyyymmdd} - {local_symbol} - {value_type} - fetch")
+            df = fetch_data(
+                ib, sec_master, engine, contract, yyyymmdd, value_type, rth=True
+            )
+            save_df(sm, contract, value_type, df)
 
 
-def gen_spread(symbol: str, front_exp: str, back_exp: str) -> FutureCalendarSpread:
-    return FutureCalendarSpread(
-        underlying_symbol=symbol,
-        exchange=Exchange.GLOBEX,
-        action=ActionType.BUY,
-        m1_expiry=front_exp,
-        m2_expiry=back_exp,
+def gen_contract(symbol, exp) -> Future:
+    return Future(
+        symbol=symbol,
+        lastTradeDateOrContractMonth=exp,
+        exchange=Exchange.GLOBEX.value,
     )
+
+
+def init_contracts(symbols, exps):
+    contracts = []
+    for symbol in symbols:
+        for ex in expirations:
+            contract = gen_contract(symbol, ex)
+            contracts.append(contract)
+    return contracts
+
+
+def register_contracts_with_sec_master(sm, contracts):
+    for x in contracts:
+        sm.set_ref(x.conId, x.localSymbol)
 
 
 ib = gen_ib_client()
@@ -71,30 +77,14 @@ sec_master = InMemSecuritiesMaster()
 
 if __name__ == "__main__":
     last_x_days = 20
-    symbols = ["/ES", "/MES", "/RTY", "/M2K"]
-    front_back_expirations = [("202103", "202106")]
+    symbols = ["/MES", "/M2K", "/MNQ"]
+    expirations = ["202106", "202103"]
 
-    calendar_spreads = []
+    contracts = init_contracts(symbols, expirations)
+    contracts = ib.qualifyContracts(contracts)
+    register_contracts_with_sec_master(sec_master, contracts)
 
-    for symbol in symbols:
-        for fm, bm in front_back_expirations:
-            spread = gen_spread(symbol, fm, bm)
-            spread.init_contracts(ib)
-            sec_master.set_ref(spread.m1.conId, spread.m1.localSymbol)
-            sec_master.set_ref(spread.m2.conId, spread.m2.localSymbol)
-            calendar_spreads.append(spread)
-
-    for fs in calendar_spreads:
-        for i in range(1, last_x_days):
-            ago = date.today() - relativedelta(days=i)
-            yyyymmdd = ago.strftime("%Y%m%d")
-
-            # --------------- front month and back month contracts
-            contracts = fs.m1, fs.m2
-            value_types = INDIVIDUAL_CONTRACT_DATA_POINTS
-            execute_fetch(contracts, yyyymmdd, value_types)
-
-            # --------------- spread contracts
-            contracts = [fs.contract]
-            value_types = SPREAD_CONTRACT_DATA_POINTS
-            execute_fetch(contracts, yyyymmdd, value_types)
+    for i in range(1, last_x_days):
+        ago = date.today() - relativedelta(days=i)
+        yyyymmdd = ago.strftime("%Y%m%d")
+        execute_fetch(sec_master, contracts, yyyymmdd, INDIVIDUAL_CONTRACT_DATA_POINTS)

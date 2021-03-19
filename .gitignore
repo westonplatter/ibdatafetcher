@@ -93,3 +93,5 @@ venv.bak/
 
 results/
 db_data/
+
+.pre-commit-config.yaml

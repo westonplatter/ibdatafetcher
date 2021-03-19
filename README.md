@@ -2,17 +2,18 @@
 Simple methods for getting market data from IB
 
 ## Running
+
 ```
 make env.create
 make env.update
 ```
 
-See configs and code in `ibdatafetcher/client.py`
+Run IB Gateway on Port `4001`.
 
 ```
-conda activate ibdatafetcher
-python ibdatafetcher/client.py
+make download_futures_equities
 ```
+
 
 <!--
 ## Using with QuantDataLake
